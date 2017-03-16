@@ -1,0 +1,20 @@
+.container {
+    background-color: black;
+    position: relative;
+}
+
+.player {
+    background-color: yellow;
+    position:absolute;
+    top: 0px;
+    left: 0px;
+    border-radius: 5px;
+}
+
+.item {
+    position: absolute;
+    border-radius: 5px;
+    height: 10px;
+    width: 10px;
+    background-color: red;
+}

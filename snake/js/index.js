@@ -1,6 +1,7 @@
 $(function () {
     let prevTime = 0;
     let stop = false;
+    let stopKey = false;
     let speed = 16;
     let key;
 
@@ -10,7 +11,7 @@ $(function () {
         element: null,
         appearance: {
             probability: 200,
-            duration: 5000,
+            duration: 10000, // 5000
             timeout: null
         },
         getPosition(fieldMeasure) {
@@ -56,9 +57,49 @@ $(function () {
         width: 400
     };
     const player = {
-        level: 2,
-        x: 0,
-        y: 0,
+        level: 3,
+        items: [],
+        growPoints: 100,
+        grow() {
+            if (this.points > 0 && this.points % this.growPoints === 0) {
+              this.addElement(lastPosition.x, lastPosition.y, this.items[this.items.length - 1]);
+            }
+        },
+        addElement(x, y, prev = null) {
+            const id = player.items.length;
+            const el = $('<div>')
+                .addClass('player')
+                .attr('id', id)
+                .css('height', player.height)
+                .css('width', player.width)
+                .css('left', x)
+                .css('top', y);
+
+            container.append(el);
+            player.items.push({
+                id,
+                x,
+                y,
+                el,
+                prev,
+                movement: {
+                    x: 0,
+                    y: 0,
+                    setX(val) {
+                        this.reset();
+                        this.x = val;
+                    },
+                    setY(val) {
+                        this.reset();
+                        this.y = val;
+                    },
+                    reset() {
+                        this.x = 0;
+                        this.y = 0;
+                    }
+                }
+            });
+        },
         height: 10,
         width: 10,
         points: 0,
@@ -68,44 +109,38 @@ $(function () {
             }
         }
     };
-    const movement = {
-        x: 0,
-        y: 0,
-        reset() {
-            this.x = 0;
-            this.y = 0;
-        }
-    };
 
     const container = $('.container')
         .css('height', field.height)
         .css('width', field.width);
 
-    const playerEl = $('<div>')
-        .addClass('player')
-        .css('height', player.height)
-        .css('width', player.width);
-
-    container.append(playerEl);
-
     function changeDirection() {
-        movement.reset()
+        for (let i = player.items.length - 1; i > 0; i--) {
+            player.items[i].movement = Object.assign({}, player.items[i-1].movement);
+        }
+        const movement = player.items[0].movement;
         switch(key) {
             case 'ArrowRight':
-                movement.x = 1;
+                movement.setX(1);
                 break;
             case 'ArrowLeft':
-                movement.x = -1;
+                movement.setX(-1);
                 break;
             case 'ArrowDown':
-                movement.y = 1;
+                movement.setY(1);
                 break;
             case 'ArrowUp':
-                movement.y = -1;
+                movement.setY(-1);
                 break;
             case 'Space':
-                stop = true;
+                stopKey = !stopKey;
+                console.log(stopKey);
                 break;
+        }
+        const lastPlayerItem = player.items[player.items.length - 1];
+        lastPosition = {
+            x: lastPlayerItem.x,
+            y: lastPlayerItem.y
         }
     }
 
@@ -116,27 +151,33 @@ $(function () {
     function loop(time) {
 
         itemAppears();
-        eat();
 
         let delta = time - prevTime;
         if (delta >= speed) {
-            if (player.x % player.width === 0 && player.y % player.height === 0) {
+            move();
+            if (player.items[0].x % player.width === 0 && player.items[0].y % player.height === 0) {
+                stop = stopKey;
                 changeDirection();
             }
             prevTime = time;
-            move();
+
         }
+
+        eat();
+
         if (!stop) {
             requestAnimationFrame(loop);
         }
     }
 
     function eat() {
-        if (item.x === player.x && item.y === player.y) {
+        const head = player.items[0];
+        if (item.x === head.x && item.y === head.y) {
             item.remove();
             player.points += 10;
             showPoints();
-            player.increaseSpeed();
+            player.grow();
+            //player.increaseSpeed();
         }
     }
 
@@ -146,26 +187,38 @@ $(function () {
 
     function itemAppears() {
         if (item.x === null && item.willAppear()) {
-            
             item.draw();
         }
     }
 
     function move() {
-        if (movement.x !== 0) {
-            let v = player.x + movement.x * level[player.level];
-            if (v >= 0 && v <= field.width - player.width) {
-                playerEl.css('left', v);
-                player.x = v;
+        let hitTheWall = false;
+        player.items.forEach(function (playerItem, index) {
+            if (hitTheWall) {
+                return;
             }
-        } else if (movement.y !== 0) {
-            let v = player.y + movement.y * level[player.level];
-            if (v >= 0 && v <= field.height - player.height) {
-                playerEl.css('top', v);
-                player.y = v;
+            const movement = playerItem.movement;
+            if (movement.x !== 0) {
+                let v = playerItem.x + movement.x * level[player.level];
+                if (v >= 0 && v <= field.width - player.width) {
+                    playerItem.el.css('left', v);
+                    playerItem.x = v;
+                } else {
+                    hitTheWall = true;
+                }
+            } else if (movement.y !== 0) {
+                let v = playerItem.y + movement.y * level[player.level];
+                if (v >= 0 && v <= field.height - player.height) {
+                    playerItem.el.css('top', v);
+                    playerItem.y = v;
+                } else {
+                    hitTheWall = true;
+                }
             }
-        }
+        });
     }
+
+    player.addElement(0, 0);
 
     requestAnimationFrame(loop);
     showPoints();

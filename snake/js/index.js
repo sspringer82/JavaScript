@@ -4,9 +4,49 @@ $(function () {
     let speed = 16;
     let key;
 
+    let item = {
+        x: null,
+        y: null,
+        element: null,
+        appearance: {
+            probability: 200,
+            duration: 5000,
+            timeout: null
+        },
+        getPosition(fieldMeasure) {
+            return Math.floor(Math.random() * fieldMeasure / 10) * 10
+        },
+        draw() {
+            this.x = this.getPosition(field.width);
+            this.y = this.getPosition(field.height);
+
+            this.element = $('<div>')
+                .addClass('item')
+                .css('left', item.x)
+                .css('top', item.y);
+
+            container.append(this.element);
+
+            this.appearance.timeout = setTimeout(this.remove.bind(this), this.appearance.duration);
+        },
+        remove() {
+            this.x = null;
+            this.y = null;
+            this.element.remove();
+            clearTimeout(this.appearance.timeout);
+        },
+        willAppear() {
+            return Math.floor(Math.random() * this.appearance.probability) % this.appearance.probability === 0;
+        }
+    };
+
     const level = [
+        0.5,
+        0.625,
         1,
+        1,25,
         2,
+        2.5,
         5,
         10
     ];
@@ -16,11 +56,17 @@ $(function () {
         width: 400
     };
     const player = {
-        level: 1,
+        level: 2,
         x: 0,
         y: 0,
         height: 10,
-        width: 10
+        width: 10,
+        points: 0,
+        increaseSpeed() {
+            if (this.points > 0 && this.points % 100 === 0) {
+                this.level++;
+            }
+        }
     };
     const movement = {
         x: 0,
@@ -68,6 +114,10 @@ $(function () {
     });
 
     function loop(time) {
+
+        itemAppears();
+        eat();
+
         let delta = time - prevTime;
         if (delta >= speed) {
             if (player.x % player.width === 0 && player.y % player.height === 0) {
@@ -78,6 +128,26 @@ $(function () {
         }
         if (!stop) {
             requestAnimationFrame(loop);
+        }
+    }
+
+    function eat() {
+        if (item.x === player.x && item.y === player.y) {
+            item.remove();
+            player.points += 10;
+            showPoints();
+            player.increaseSpeed();
+        }
+    }
+
+    function showPoints() {
+        $('.points').text('Points: ' + player.points);
+    }
+
+    function itemAppears() {
+        if (item.x === null && item.willAppear()) {
+            
+            item.draw();
         }
     }
 
@@ -98,4 +168,5 @@ $(function () {
     }
 
     requestAnimationFrame(loop);
+    showPoints();
 });

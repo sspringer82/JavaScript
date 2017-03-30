@@ -8,6 +8,15 @@ export class Task {
     }
 
     render(target) {
+        const removeButton = $('<button>')
+            .text('remove')
+            .data('id', this.id)
+            .data('type', 'remove');
+        const editButton = $('<button>')
+            .text('edit')
+            .data('id', this.id)
+            .data('type', 'edit');
+
         let div = $('<div>')
             .addClass('row')
             .append($('<div>').text(this.id))
@@ -15,6 +24,8 @@ export class Task {
             .append($('<div>').text(this.from))
             .append($('<div>').text(this.until))
             .append($('<div>').text(this.task))
+            .append(removeButton)
+            .append(editButton);
 
         target.append(div);
     }

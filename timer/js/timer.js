@@ -16,24 +16,54 @@ export class Timer {
     }
 
     bindEvents() {
-        $('#submit').on('click', () => {
-            this.create();
+        $(document).on('click', (event) => {
+            const target = $(event.target);
+            const type = target.data('type');
+            const id = target.data('id');
+            switch(type) {
+                case 'save':
+                    this.save();
+                    break;
+                case 'edit':
+                    this.edit(id);
+                    break;
+                case 'remove':
+                    this.remove(id);
+                    break;
+            }
         });
     }
 
-    create() {
+    remove(id) {
+        this.store.remove(id);
+        this.render();
+    }
+
+    save() {
         let task = new Task(
-            null,
+            $('#id').val(),
             $('#date').val(),
             $('#from').val(),
             $('#until').val(),
             $('#task').val()
         );
-        this.store.create(task);
+        debugger;
+        this.store.save(task);
         $('#form input').each((i, e) => {
             $(e).val('');
         });
         this.render();
+    }
+
+    edit(id) {
+        const task = this.store.tasks.find((task) => {
+            return task.id === id;
+        });
+        $('#id').val(task.id);
+        $('#date').val(task.date);
+        $('#from').val(task.from);
+        $('#until').val(task.until);
+        $('#task').val(task.task);
     }
 
     render() {

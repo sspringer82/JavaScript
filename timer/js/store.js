@@ -30,9 +30,27 @@ export class Store {
         return id;
     }
 
-    create(task) {
-        task.id = this.getNextId();
+    save(task) {
+        if (task.id === '') {
+            task.id = this.getNextId();
+        }
+        const index = this.remove(task.id);
         localStorage.setItem(task.id, JSON.stringify(task));
-        this.tasks.push(task);
+        if (index) {
+            this.tasks[index] = task;
+        } else {
+            this.tasks.push(task);
+        }
+    }
+
+    getIndexOfTask(id) {
+        return this.tasks.findIndex(task => task.id === id);
+
+    }
+
+    remove(id) {
+        localStorage.removeItem(id);
+        const index = this.getIndexOfTask(id);
+        this.tasks.splice(index, 1);
     }
 }

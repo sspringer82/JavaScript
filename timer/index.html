@@ -6,9 +6,6 @@
         <link rel="stylesheet" href="style/style.css">
         <script src="js/lib/jquery.min.js"></script>
         <script src="js/bundle.js"></script>
-        <script>
-            
-        </script>
     </head>
     <body>
         <div>
@@ -25,6 +22,7 @@
 
         <div id="form">
             <h1>Zeitbuchung</h1>
+            <input type="hidden" id="id">
             <div>
                 <label for="date">date:</label>
                 <input type="text" id="date">
@@ -42,7 +40,7 @@
                 <input type="text" id="task">
             </div>
             <div>
-                <button id="submit">Submit</button>
+                <button id="submit" data-type="save">Submit</button>
             </div>
         </div>
 

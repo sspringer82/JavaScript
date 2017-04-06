@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 3);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -95,7 +95,10 @@ var Task = exports.Task = function () {
     _createClass(Task, [{
         key: 'render',
         value: function render(target) {
-            var div = $('<div>').addClass('row').append($('<div>').text(this.id)).append($('<div>').text(this.date)).append($('<div>').text(this.from)).append($('<div>').text(this.until)).append($('<div>').text(this.task));
+            var removeButton = $('<button>').text('remove').data('id', this.id).data('type', 'remove');
+            var editButton = $('<button>').text('edit').data('id', this.id).data('type', 'edit');
+
+            var div = $('<div>').addClass('row').append($('<div>').text(this.id)).append($('<div>').text(this.date)).append($('<div>').text(this.from)).append($('<div>').text(this.until)).append($('<div>').text(this.task)).append(removeButton).append(editButton);
 
             target.append(div);
         }
@@ -120,7 +123,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _task = __webpack_require__(0);
 
-var _store = __webpack_require__(3);
+var _store = __webpack_require__(2);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -134,41 +137,81 @@ var Timer = exports.Timer = function () {
     _createClass(Timer, [{
         key: 'init',
         value: function init() {
+            var _this = this;
+
             this.store = new _store.Store();
 
             this.bindEvents();
 
-            this.store.loadAll();
-            this.render();
+            this.store.loadAll().then(function () {
+                _this.render();
+            });
         }
     }, {
         key: 'bindEvents',
         value: function bindEvents() {
-            var _this = this;
+            var _this2 = this;
 
-            $('#submit').on('click', function () {
-                _this.create();
+            $(document).on('click', function (event) {
+                var target = $(event.target);
+                var type = target.data('type');
+                var id = target.data('id');
+                switch (type) {
+                    case 'save':
+                        _this2.save();
+                        break;
+                    case 'edit':
+                        _this2.edit(id);
+                        break;
+                    case 'remove':
+                        _this2.remove(id);
+                        break;
+                }
             });
         }
     }, {
-        key: 'create',
-        value: function create() {
-            var task = new _task.Task(null, $('#date').val(), $('#from').val(), $('#until').val(), $('#task').val());
-            this.store.create(task);
-            $('#form input').each(function (i, e) {
-                $(e).val('');
+        key: 'remove',
+        value: function remove(id) {
+            var _this3 = this;
+
+            this.store.remove(id).then(function () {
+                _this3.render();
             });
-            this.render();
+        }
+    }, {
+        key: 'save',
+        value: function save() {
+            var _this4 = this;
+
+            var task = new _task.Task($('#id').val(), $('#date').val(), $('#from').val(), $('#until').val(), $('#task').val());
+            this.store.save(task).then(function () {
+                $('#form input').each(function (i, e) {
+                    $(e).val('');
+                });
+                _this4.render();
+            });
+        }
+    }, {
+        key: 'edit',
+        value: function edit(id) {
+            var task = this.store.tasks.find(function (task) {
+                return task.id === id;
+            });
+            $('#id').val(task.id);
+            $('#date').val(task.date);
+            $('#from').val(task.from);
+            $('#until').val(task.until);
+            $('#task').val(task.task);
         }
     }, {
         key: 'render',
         value: function render() {
-            var _this2 = this;
+            var _this5 = this;
 
             this.list.empty();
             this.store.tasks.forEach(function (task) {
-                task.render(_this2.list);
-                _this2.list.append($('<hr>'));
+                task.render(_this5.list);
+                _this5.list.append($('<hr>'));
             });
         }
     }]);
@@ -178,20 +221,6 @@ var Timer = exports.Timer = function () {
 
 /***/ }),
 /* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _timer = __webpack_require__(1);
-
-$(function () {
-    var timer = new _timer.Timer();
-    timer.init();
-});
-
-/***/ }),
-/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -219,34 +248,93 @@ var Store = exports.Store = function () {
     _createClass(Store, [{
         key: 'loadAll',
         value: function loadAll() {
-            for (var i = 0; i < localStorage.length; i++) {
-                var key = localStorage.key(i);
-                var task = JSON.parse(localStorage.getItem(key));
-                if (this.id < task.id) {
-                    this.id = task.id;
-                }
-                this.tasks.push(new _task.Task(task.id, task.date, task.from, task.until, task.task));
-            }
-            this.id++;
+            var _this = this;
+
+            return new Promise(function (resolve, reject) {
+                $.get('/timer').done(function (tasks) {
+                    tasks.forEach(function (task) {
+                        _this.tasks.push(new _task.Task(task.id, task.date, task.from, task.until, task.task));
+                    });
+                    resolve();
+                });
+            });
         }
-    }, {
-        key: 'getNextId',
-        value: function getNextId() {
-            var id = this.id;
+
+        /*getNextId() {
+            let id = this.id;
             this.id++;
             return id;
+        }*/
+
+    }, {
+        key: 'save',
+        value: function save(task) {
+            var _this2 = this;
+
+            return new Promise(function (resolve, reject) {
+                if (task.id === '') {
+                    $.ajax({
+                        url: 'timer',
+                        method: 'post',
+                        data: task
+                    }).done(function (data) {
+                        task.id = data.id;
+                        _this2.tasks.push(task);
+                        resolve();
+                    });
+                } else {
+                    $.ajax({
+                        url: 'timer',
+                        method: 'put',
+                        data: task
+                    }).done(function () {
+                        _this2.tasks[_this2.getIndexOfTask(task.id)] = task;
+                        resolve();
+                    });
+                }
+            });
         }
     }, {
-        key: 'create',
-        value: function create(task) {
-            task.id = this.getNextId();
-            localStorage.setItem(task.id, JSON.stringify(task));
-            this.tasks.push(task);
+        key: 'getIndexOfTask',
+        value: function getIndexOfTask(id) {
+            return this.tasks.findIndex(function (task) {
+                return task.id === id;
+            });
+        }
+    }, {
+        key: 'remove',
+        value: function remove(id) {
+            var _this3 = this;
+
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '/timer/' + id,
+                    method: 'delete'
+                }).done(function () {
+                    var index = _this3.getIndexOfTask(id);
+                    _this3.tasks.splice(index, 1);
+                    resolve();
+                });
+            });
         }
     }]);
 
     return Store;
 }();
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _timer = __webpack_require__(1);
+
+$(function () {
+    var timer = new _timer.Timer();
+    timer.init();
+});
 
 /***/ })
 /******/ ]);

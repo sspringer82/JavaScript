@@ -11,8 +11,9 @@ export class Timer {
 
         this.bindEvents();
 
-        this.store.loadAll();
-        this.render();
+        this.store.loadAll().then(() => {
+            this.render();
+        });
     }
 
     bindEvents() {
@@ -35,8 +36,9 @@ export class Timer {
     }
 
     remove(id) {
-        this.store.remove(id);
-        this.render();
+        this.store.remove(id).then(() => {
+            this.render();
+        });
     }
 
     save() {
@@ -47,12 +49,12 @@ export class Timer {
             $('#until').val(),
             $('#task').val()
         );
-        debugger;
-        this.store.save(task);
-        $('#form input').each((i, e) => {
-            $(e).val('');
+        this.store.save(task).then(() => {
+            $('#form input').each((i, e) => {
+                $(e).val('');
+            });
+            this.render();
         });
-        this.render();
     }
 
     edit(id) {
